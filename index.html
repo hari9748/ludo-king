@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Register | Gaming App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --primary: #2c3e50; --gold: #f1c40f; --success: #27ae60; --light: #ecf0f1; }
+        body, html { height: 100%; margin: 0; font-family: sans-serif; background: var(--primary); overflow: hidden; }
+        .container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); }
+        .auth-box { width: 90%; max-width: 400px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); text-align: center; }
+        .logo { font-size: 3rem; color: var(--gold); margin-bottom: 10px; }
+        h2 { margin-bottom: 25px; color: var(--primary); font-size: 1.5rem; }
+        .input-group { position: relative; margin-bottom: 20px; }
+        .input-group i { position: absolute; left: 15px; top: 15px; color: #777; }
+        .input-group input { width: 100%; padding: 12px 12px 12px 45px; border: 1px solid #ddd; border-radius: 10px; outline: none; box-sizing: border-box; font-size: 1rem; background: #f9f9f9; }
+        .btn-auth { width: 100%; padding: 14px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-auth:disabled { background: #95a5a6; cursor: not-allowed; }
+        .switch-text { margin-top: 20px; font-size: 0.9rem; color: #555; }
+        .switch-text b { color: var(--primary); cursor: pointer; text-decoration: underline; }
+        #loginForm { display: none; }
+        .bonus-tag { background: var(--success); color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; display: inline-block; margin-bottom: 15px; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="auth-box" id="registerForm">
+            <div class="logo"><i class="fas fa-gamepad"></i></div>
+            <div class="bonus-tag">Register गर्दा रू ५ बोनस पाइनेछ! 🎁</div>
+            <h2>नयाँ खाता खोल्नुहोस्</h2>
+            <div class="input-group"><i class="fas fa-user"></i><input type="text" id="regName" placeholder="पूरा नाम"></div>
+            <div class="input-group"><i class="fas fa-phone"></i><input type="email" id="regEmail" placeholder="इमेल (Firebase को लागि अनिवार्य)"></div>
+            <div class="input-group"><i class="fas fa-key"></i><input type="password" id="regPass" placeholder="पासवर्ड (न्यूनतम ६ अक्षर)"></div>
+            <div class="input-group"><i class="fas fa-user-friends"></i><input type="text" id="regRefer" placeholder="Referral Code"></div>
+            <button class="btn-auth" id="regBtn">REGISTER</button>
+            <p class="switch-text">पहिले नै खाता छ? <b onclick="toggleForm('login')">यहाँ Login गर्नुहोस्</b></p>
+        </div>
+
+        <div class="auth-box" id="loginForm">
+            <div class="logo"><i class="fas fa-user-circle"></i></div>
+            <h2>लगइन गर्नुहोस्</h2>
+            <div class="input-group"><i class="fas fa-envelope"></i><input type="email" id="loginEmail" placeholder="इमेल"></div>
+            <div class="input-group"><i class="fas fa-key"></i><input type="password" id="loginPass" placeholder="पासवर्ड"></div>
+            <button class="btn-auth" id="loginBtn">LOGIN</button>
+            <p class="switch-text">खाता छैन? <b onclick="toggleForm('register')">यहाँ दर्ता गर्नुहोस्</b></p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCHmAfL2m7QTcybedbonB27aOBxD264ZmM",
+            authDomain: "ludo-king-b051a.firebaseapp.com",
+            projectId: "ludo-king-b051a",
+            storageBucket: "ludo-king-b051a.firebasestorage.app",
+            messagingSenderId: "311482948017",
+            appId: "1:311482948017:web:4a986ca1416b6e456e0590"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // Form Toggle
+        window.toggleForm = (type) => {
+            document.getElementById('registerForm').style.display = (type === 'login') ? 'none' : 'block';
+            document.getElementById('loginForm').style.display = (type === 'login') ? 'block' : 'none';
+        };
+
+        // Handle Registration
+        document.getElementById('regBtn').onclick = async () => {
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPass').value;
+            const refer = document.getElementById('regRefer').value;
+
+            if(!name || !email || !pass) return alert("कृपया सबै विवरण भर्नुहोस्!");
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+                const user = userCredential.user;
+
+                // डाटाबेस मा युजर प्रोफाइल बनाउने (रू ५ बोनस सहित)
+                await set(ref(db, 'users/' + user.uid), {
+                    name: name,
+                    email: email,
+                    balance: 5.00,
+                    referCode: refer || "NONE",
+                    joinedAt: Date.now()
+                });
+
+                alert("दर्ता सफल भयो! रू ५ बोनस प्राप्त भयो।");
+                window.location.href = "dashboard.html";
+            } catch (error) {
+                alert("Error: " + error.message);
+            }
+        };
+
+        // Handle Login
+        document.getElementById('loginBtn').onclick = async () => {
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPass').value;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                alert("लगइन सफल!");
+                window.location.href = "dashboard.html";
+            } catch (error) {
+                alert("लगइन असफल! विवरण जाँच गर्नुहोस्।");
+            }
+        };
+
+        // यदि पहिले नै लगइन छ भने सिधै Dashboard पठाइदिने
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // window.location.href = "dashboard.html"; 
+            }
+        });
+    </script>
+</body>
+</html>
